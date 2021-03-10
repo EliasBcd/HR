@@ -1,0 +1,41 @@
+{% extends 'hr/Base.html' %}
+
+{% block title %}
+        Register
+    {% endblock %}
+
+{% block content %}
+
+    {% if form.errors %}
+        <p>Please fix the errors in the form.</p>
+        {{ form.non_field_errors }}
+    {% endif %}
+
+    <form method="POST">{% csrf_token %}
+    <table class="table">
+        <tr>
+            <td>Email
+
+            </td>
+            <td>
+                {{ form.username.errors }}
+                {{ form.username }}
+            </td>
+        </tr>
+        <tr>
+            <td>{{ form.password1.label_tag }}</td>
+            <td>
+                {{ form.password1.errors }}
+                {{ form.password1 }}
+            </td>
+        </tr>
+        <tr>
+            <td>{{ form.password2.label_tag }}</td>
+            <td>{{ form.password2.errors }}
+                {{ form.password2 }}</td>
+        </tr>
+        </table>
+    <button>Submit</button>
+    </form>
+
+{% endblock %}

@@ -1,0 +1,17 @@
+{
+  "name": "oTree HR",
+  "scripts": {
+    "postdeploy": "python manage.py migrate"
+  },
+  "env": {
+  },
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "free"
+    }
+  },
+  "addons": [
+    "heroku-postgresql"
+  ]
+}

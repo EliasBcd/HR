@@ -1,0 +1,27 @@
+{% extends "hr/Base.html" %}
+
+{% block title %}Sessions for {{ site.url }}{% endblock %}
+
+{% block content %}
+    <form method="post">{% csrf_token %}
+        <p>Create a session on your oTree site, then enter its <b>code</b> here:</p>
+        <input type="text" name="code" autofocus>
+        <button type="submit">Add</button>
+    </form>
+
+    <h3>Existing Sessions</h3>
+    <table class="table">
+            <tr>
+                <th>Code</th>
+                <th>Status</th>
+                <th>Sandbox?</th>
+            </tr>
+        {% for s in sessions %}
+            <tr>
+                <td><a href="{% url 'ManageHIT' s.code %}">{{ s.code }}</a></td>
+                <td>{{ s.readable_status }}</td>
+                <td>{% if s.use_sandbox %}Sandbox{% elif s.use_sandbox == False %}Live{% else %}-{% endif %}</td>
+            </tr>
+        {% endfor %}
+    </table>
+{% endblock %}

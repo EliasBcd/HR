@@ -1,0 +1,53 @@
+{% load hr %}
+
+
+<table class="table table-striped">
+  <tr>
+    <th></th>
+    <th>Code</th>
+    <th>Assignment ID</th>
+    <th>Worker ID</th>
+    <th>Completion code</th>
+    <th>
+      Bonus payoff
+    </th>
+    <th>Total pay</th>
+    {% if reviewable %}
+    <th>
+      Select
+      <div class="checkbox">
+        <label>
+          <input name="checkAll" type="checkbox"
+                 value="">
+        </label>
+      </div>
+    </th>
+    {% endif %}
+  </tr>
+
+  {% for wrk in workers %}
+    <tr>
+      <td>{{ forloop.counter }}</td>
+      <td class="codes">{{ wrk.code }}</td>
+      <td class="codes">{{ wrk.assignment_id }}</td>
+      <td class="codes">{{ wrk.worker_id }}</td>
+      <td>{{ wrk.answers_formatted }}</td>
+      <td>
+        {{ wrk.payoff|cu }}
+      </td>
+      <td>{{ wrk.payoff_plus_participation_fee|cu }}</td>
+      {% if reviewable %}
+      <td>
+        <div class="checkbox-inline">
+          <label>
+            <input type="checkbox"
+                   name="workers"
+                   data-value="{{ wrk.payoff_plus_participation_fee }}"
+                   value="{{ wrk.worker_id }}">
+          </label>
+        </div>
+      </td>
+      {% endif %}
+    </tr>
+  {% endfor %}
+</table>
