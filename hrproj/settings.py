@@ -7,7 +7,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '+3+%o%ec*rwd&r_b2ym=4)^r)a(!w4*wb@4$wtfaxqha3p07h('
+SECRET_KEY = environ.get('SECRET_KEY', 'CHANGE_THIS_TO_SOMETHING_SECRET')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -109,4 +109,5 @@ LOGIN_REDIRECT_URL = '/Sites/'
 LOGOUT_REDIRECT_URL = '/'
 
 import django_heroku
+
 django_heroku.settings(locals())
