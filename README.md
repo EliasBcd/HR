@@ -2,8 +2,10 @@
 
 oTree HR is a project that aims to connect oTree with online recruiting & payment platforms like
 MTurk, Prolific, Venmo, PayPal, etc, to facilitate payments, communication, and management of your workers. 
-Currently it is an **early alpha preview**, and just supports publishing HITs to MTurk (with micro-batching, which reduces 
-MTurk's fees). However, it can easily be extended to do things like the following:
+Currently it is an **alpha version**, and supports publishing HITs to MTurk (with micro-batching, which reduces 
+MTurk's fees). 
+
+The project is ready for anyone who wants to clone it and add their own functionality, such as:
 
 MTurk:
 -	sending custom bonuses and messages to workers
@@ -17,8 +19,9 @@ MTurk:
 Other:
 -	Integration with Prolific and other cloud services
 -   Sending payments via PayPal/Venmo/etc.
+-   Reading URL query strings from incoming participants and sending them to oTree via the "participant vars" API endpoint.
 
-**I welcome community contributions of new functionality!**
+**I welcome community contributions!**
 Please send an email to chris@otree.org.
 
 ## Details
@@ -34,13 +37,16 @@ oTree HR supports multiple user accounts. Each user can register any number of o
 This means that oTree HR can be provided as a hosted service
 so that people don't have to set up their own server.
 
-It can also be deployed in 1 click via a Heroku Button (see below prototype).
-
 ## How do I run it?
 
 First, make sure you are on the latest 5.x (`pip install -U otree`),
 or on oTree 3.4 beta (`pip install -U "otree<5" --pre`).
 
+### On Heroku
+
+[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
+
+### Locally
 It's a standard Django project:
 
 ```
@@ -59,7 +65,7 @@ To access the admin and view the database, make a superuser:
 python manage.py createsuperuser --username a@example.com --email a@example.com
 ```
 
-[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
+If deploying to Heroku via git, make sure to set the SECRET_KEY config var.
 
 ## Why a separate project and not part of oTree?
 
