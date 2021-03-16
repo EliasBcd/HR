@@ -2,8 +2,10 @@
 
 oTree HR is a project that aims to connect oTree with online recruiting & payment platforms like
 MTurk, Prolific, Venmo, PayPal, etc, to facilitate payments, communication, and management of your workers. 
-Currently it is an **alpha version**, and supports publishing HITs to MTurk (with micro-batching, which reduces 
-MTurk's fees). 
+Currently it is an **alpha version**, and supports:
+
+-   MTurk: publishing HITs with micro-batching, which reduces MTurk's fees.
+-   Prolific: coordinating start links, completion URLs, and payments. 
 
 The project is ready for anyone who wants to clone it and add their own functionality, such as:
 
@@ -17,7 +19,6 @@ MTurk:
 -	Grant qualifications according to whatever logic you specify
 
 Other:
--	Integration with Prolific and other cloud services
 -   Sending payments via PayPal/Venmo/etc.
 -   Reading URL query strings from incoming participants and sending them to oTree via the "participant vars" API endpoint.
 
