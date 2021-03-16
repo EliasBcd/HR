@@ -1,0 +1,29 @@
+{% extends "hr/Base.html" %}
+
+{% block title %}Prolific sessions for {{ site.url }}{% endblock %}
+
+{% block content %}
+    <form method="post">{% csrf_token %}
+        <p>Create a session on your oTree site, then enter its <b>code</b> here:</p>
+        <input type="text" name="code" autofocus>
+        <button type="submit">Add</button>
+    </form>
+
+    <h3>Existing Sessions</h3>
+    <table class="table table-striped">
+        <tr>
+            <th>Session code</th>
+            <th>Participants</th>
+            <th>Configure</th>
+            <th>Payments</th>
+        </tr>
+        {% for s in sessions %}
+            <tr>
+                <td>{{ s.code }}</td>
+                <td>{{ s.num_participants }}</td>
+                <td><a href="{% url 'ProlificSession' s.code %}">Configure</a></td>
+                <td><a href="{% url 'ProlificPayments' s.code %}">Payments</a></td>
+            </tr>
+        {% endfor %}
+    </table>
+{% endblock %}

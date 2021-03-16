@@ -1,14 +1,18 @@
 {% extends "hr/Base.html" %}
 
-{%  block title %}
+{% block breadcrumbs %}
+    {% include 'mturk/includes/breadcrumbs.html' %}
+{% endblock %}
+
+{% block title %}
     Create HIT
 {% endblock %}
 
 {% block content %}
     <ul>
-      <li>Number of start links available:
+        <li>Number of start links available:
             {{ num_participants }}</li>
-      <li>Participation fee: {{ participation_fee }} USD</li>
+        <li>Participation fee: {{ participation_fee }} USD</li>
     </ul>
 
     <form action="" method="post" role="form" class="form"
@@ -16,12 +20,12 @@
 
         {{ form.as_table }}
 
-      <p>
-        When you click the below button, your HIT will be immediately published on MTurk.
-      </p>
-      <button type="submit" class="btn btn-primary" id="btn-publish-hit">
-        Publish HIT
-      </button>
+        <p>
+            When you click the below button, your HIT will be immediately published on MTurk.
+        </p>
+        <button type="submit" class="btn btn-primary" id="btn-publish-hit">
+            Publish HIT
+        </button>
     </form>
 
 {% endblock %}

@@ -1,11 +1,15 @@
 {% extends "hr/Base.html" %}
 
+{% block breadcrumbs %}
+    {% include 'mturk/includes/breadcrumbs.html' %}
+{% endblock %}
+
 {% block title %}
     Manage HIT
 {% endblock %}
 
 {% block content %}
-    <p><a href="{% url 'SessionPayments' session.code %}">Payments</a></p>
+    <p><a href="{% url 'MTurkPayments' session.code %}">Payments</a></p>
     <p><a href="{{ session.admin_url }}">oTree site</a></p>
 
 

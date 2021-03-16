@@ -7,6 +7,7 @@ from .models import *
 class SessionAdmin(admin.ModelAdmin):
     list_display = [
         'code',
+        'site',
         'num_participants',
         'use_sandbox',
         'expiration',

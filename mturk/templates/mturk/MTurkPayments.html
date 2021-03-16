@@ -1,6 +1,10 @@
 {% extends "hr/Base.html" %}
 {% load hr %}
 
+{% block breadcrumbs %}
+    {% include 'mturk/includes/breadcrumbs.html' %}
+{% endblock %}
+
 {% block content %}
     <div class="container" style='max-width:970px'>
         <br>

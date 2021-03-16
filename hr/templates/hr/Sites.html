@@ -9,7 +9,9 @@
         <table class="table">
             {% for s in sites %}
                 <tr>
-                    <td><a href="{% url 'Sessions' s.id %}">{{ s.url }}</a></td>
+                    <td><b>{{ s.url }}</b></td>
+                    <td><a href="{% url 'MTurkSessions' s.id %}">MTurk</a></td>
+                    <td><a href="{% url 'ProlificSessions' s.id %}">Prolific</a></td>
                 </tr>
             {% endfor %}
         </table>

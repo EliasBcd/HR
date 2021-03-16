@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'hr.apps.HrConfig',
     'mturk.apps.MturkConfig',
+    'prolific',
 ]
 
 MIDDLEWARE = [

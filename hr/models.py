@@ -73,8 +73,9 @@ class Site(BaseModel):
 class BaseSession(BaseModel):
     class Meta:
         abstract = True
+        unique_together = ['site', 'code']
 
-    site = models.ForeignKey(Site, on_delete=models.CASCADE)
+    site = models.ForeignKey(Site, on_delete=models.CASCADE, related_name='+')
     code = models.CharField(max_length=255)
     config_json = models.TextField(default='')
     session_wide_url = models.CharField(max_length=255)

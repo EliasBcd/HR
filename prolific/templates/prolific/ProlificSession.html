@@ -1,0 +1,50 @@
+{% extends "hr/Base.html" %}
+
+{% block breadcrumbs %}
+    {% include 'prolific/includes/breadcrumbs.html' %}
+{% endblock %}
+
+{% block title %}
+    Prolific configuration
+{% endblock %}
+
+{% block content %}
+
+    <p>Enter this into Prolific as your study URL:</p>
+
+    <code>{{ study_url }}</code>
+
+    <br><br>
+    <form method="post">{% csrf_token %}
+
+        <p>
+            Find your study's completion URL in the Prolific interface, then paste it here and save:
+        </p>
+
+        {{ form }}
+        <button>
+            Update
+        </button>
+
+    </form>
+
+    <p>
+        Then it will be sent to your oTree site as <code>prolific_completion_url</code>.
+        Follow the below steps (oTree 5 only):
+    </p>
+
+    <ol>
+        <li>add <code>'prolific_completion_url'</code> to your <code>SESSION_FIELDS</code></li>
+        <li>Add <code>'finished'</code> to your <code>PARTICIPANT_FIELDS</code> setting</li>
+        <li> In your oTree code, when the participant arrives to the last page, set
+            <code>participant.finished = True</code> (for example in <code>before_next_page</code>)
+        </li>
+        <li>On the last page, redirect the user to the prolific completion page:</li>
+    </ol>
+
+    <code><pre>
+              {{ example_html }}
+            </pre>
+    </code>.
+
+{% endblock %}

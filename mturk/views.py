@@ -32,9 +32,9 @@ from .forms import CreateHITForm
 logger = logging.getLogger(__name__)
 
 
-class RedirectWorker(vanilla.View):
-    def get(self, request, code):
-        session = Session.get_or_404(code=code)
+class RedirectMTurk(vanilla.View):
+    def get(self, request, id):
+        session = Session.get_or_404(id=id)
 
         assignment_id = request.GET['assignmentId']
         worker_id = request.GET['workerId']
@@ -46,7 +46,7 @@ class RedirectWorker(vanilla.View):
         )
 
 
-class Sessions(ExperimenterMixin, vanilla.CreateView):
+class MTurkSessions(ExperimenterMixin, vanilla.CreateView):
     template_name = 'mturk/Sessions.html'
     model = Session
     fields = ['code']
@@ -80,7 +80,7 @@ class Sessions(ExperimenterMixin, vanilla.CreateView):
 
         messages.success(request, f'Added session {code}')
 
-        return redirect('Sessions', site_id=site_id)
+        return redirect('MTurkSessions', site_id=site_id)
 
 
 class SessionMixin:
@@ -126,7 +126,7 @@ class CreateHIT(ExperimenterMixin, SessionMixin, vanilla.FormView):
         mturk_settings = MTurkSettings(**session.config['mturk_hit_settings'])
 
         start_url = request.build_absolute_uri(
-            reverse('RedirectWorker', args=(session.code,))
+            reverse('RedirectMTurk', args=(session.id,))
         )
 
         keywords = mturk_settings.keywords
@@ -233,8 +233,8 @@ class ExpireHIT(ExperimenterMixin, vanilla.View):
         return redirect('CreateHIT', code=code)
 
 
-class SessionPayments(ExperimenterMixin, SessionMixin, vanilla.TemplateView):
-    template_name = 'mturk/SessionPayments.html'
+class MTurkPayments(ExperimenterMixin, SessionMixin, vanilla.TemplateView):
+    template_name = 'mturk/MTurkPayments.html'
 
     def get_context_data(self):
         session = self.session
@@ -286,8 +286,9 @@ class SessionPayments(ExperimenterMixin, SessionMixin, vanilla.TemplateView):
             code=session.code,
             participant_labels=[wrk.worker_id for wrk in all_listable_workers],
         )
-        #  from pprint import pprint
-        #  pprint(data)
+        from pprint import pprint
+
+        pprint(data)
 
         participants_list = data['participants']
         participants = {p['label']: p for p in participants_list}
@@ -307,6 +308,7 @@ class SessionPayments(ExperimenterMixin, SessionMixin, vanilla.TemplateView):
                 payoff = participant['payoff_in_real_world_currency']
                 wrk.payoff_plus_participation_fee = payoff + participation_fee
                 wrk.payoff = payoff
+                wrk.finished = participant.get('finished')
                 wrk.code = participant['code']
 
         return dict(

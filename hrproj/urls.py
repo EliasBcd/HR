@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 
 import hr.views as hr_views
 import mturk.views as mturk_views
+import prolific.views as prolific_views
 
 
 def _make_path(route, cls, is_experimenter):
@@ -25,10 +26,14 @@ urlpatterns = [
     experimenter_path('', hr_views.Sites),
     public_path('register/', hr_views.Register),
     experimenter_path('profile/', hr_views.Settings),
-    public_path('redirect/<code>/', mturk_views.RedirectWorker),
-    experimenter_path('sites/<int:site_id>/', mturk_views.Sessions),
+    public_path('redirect_mturk/<int:id>/', mturk_views.RedirectMTurk),
+    public_path('redirect_prolific/<int:id>/', prolific_views.RedirectProlific),
+    experimenter_path('sites/<int:site_id>/mturk', mturk_views.MTurkSessions),
+    experimenter_path('sites/<int:site_id>/prolific', prolific_views.ProlificSessions),
     experimenter_path('CreateHIT/<code>/', mturk_views.CreateHIT),
-    experimenter_path('SessionPayments/<code>/', mturk_views.SessionPayments),
+    experimenter_path('ProlificPayments/<code>/', prolific_views.ProlificPayments),
+    experimenter_path('MTurkPayments/<code>/', mturk_views.MTurkPayments),
+    experimenter_path('ProlificSession/<code>/', prolific_views.ProlificSession),
     experimenter_path('ManageHIT/<code>/', mturk_views.ManageHIT),
     experimenter_path('ExpireHIT/<code>/', mturk_views.ExpireHIT),
     experimenter_path('PayMTurk/<code>/', mturk_views.PayMTurk),

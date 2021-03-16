@@ -7,6 +7,7 @@
     <th>Code</th>
     <th>Assignment ID</th>
     <th>Worker ID</th>
+    <th>Finished?</th>
     <th>Completion code</th>
     <th>
       Bonus payoff
@@ -31,6 +32,7 @@
       <td class="codes">{{ wrk.code }}</td>
       <td class="codes">{{ wrk.assignment_id }}</td>
       <td class="codes">{{ wrk.worker_id }}</td>
+      <td>{{ wrk.finished|yesno:"1," }}</td>
       <td>{{ wrk.answers_formatted }}</td>
       <td>
         {{ wrk.payoff|cu }}

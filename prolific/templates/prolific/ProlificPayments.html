@@ -1,0 +1,32 @@
+{% extends "hr/Base.html" %}
+{% load hr %}
+
+{% block breadcrumbs %}
+    {% include 'prolific/includes/breadcrumbs.html' %}
+{% endblock %}
+
+{% block title %}
+    Prolific bonus payments
+{% endblock %}
+
+{% block content %}
+
+    {% if participants %}
+    <textarea cols="80">{{ textarea }}</textarea>
+    {% else %}
+        <p>(No participants have bonus payments)</p>
+    {% endif %}
+
+    <p>Above is the payment data for participants who:</p>
+    <ol>
+        <li>Were marked as 'finished' (<code>participant.finished = True</code>)</li>
+        <li>Earned a non-zero payoff</li>
+    </ol>
+
+    <p>
+        In Prolific, while viewing submissions for your study,
+        select the "More" dropdown menu and go to the "Bulk bonus payment" option.
+        Paste this list of payments there.
+    </p>
+
+{% endblock %}

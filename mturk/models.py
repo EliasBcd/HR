@@ -1,12 +1,9 @@
 import time
-from typing import TypeVar
 
 from django.contrib.auth.models import User
 from django.db import models
 
 from hr.models import BaseModel, BaseSession
-
-ModelTypeVar = TypeVar('ModelTypeVar')
 
 
 class Session(BaseSession):
