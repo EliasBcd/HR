@@ -28,18 +28,16 @@ class OTreeServerUnreachable(BaseOTreeApiError):
     pass
 
 
-def call_api(site_url, rest_key, method, endpoint, **params) -> dict:
+def call_api(site_url, rest_key, method, *path_parts, **params) -> dict:
+    path = '/api/' + '/'.join(path_parts)
+    url = urllib.parse.urljoin(site_url, path)
     try:
-        resp = method(
-            urllib.parse.urljoin(site_url, f'/api/{endpoint}/'),
-            json=params,
-            headers={'otree-rest-key': rest_key},
-        )
+        resp = method(url, json=params, headers={'otree-rest-key': rest_key})
     except requests.exceptions.RequestException as exc:
         raise OTreeServerUnreachable(f'Could not reach your oTree site at {site_url}')
     if not resp.ok:
         msg = (
-            f'Request to "/api/{endpoint}" failed '
+            f'Request to "{url}" failed '
             f'with status code {resp.status_code}: {resp.text}'
         )
         if resp.status_code >= 500:

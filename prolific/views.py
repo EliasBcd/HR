@@ -47,7 +47,7 @@ class ProlificSessions(ExperimenterMixin, vanilla.CreateView):
     def post(self, request, site_id):
         site = get_object_or_404(Site, id=site_id)
         code = request.POST['code']
-        session_data = site.call_api(GET, 'session', code=code, participant_labels=[])
+        session_data = site.call_api(GET, 'sessions', code, participant_labels=[])
         config = session_data['config']
         num_participants = session_data['num_participants']
 
@@ -104,7 +104,7 @@ class ProlificSession(SessionMixin, ExperimenterMixin, vanilla.UpdateView):
         site.call_api(
             POST,
             'session_vars',
-            code=session.code,
+            session.code,
             vars=dict(prolific_completion_url=session.completion_url),
         )
         messages.success(
@@ -120,7 +120,7 @@ class ProlificPayments(ExperimenterMixin, SessionMixin, vanilla.TemplateView):
         session = self.session
         site = session.site
 
-        data = site.call_api(GET, 'session', code=session.code)
+        data = site.call_api(GET, 'sessions', session.code)
 
         unfiltered_participants = data['participants']
 

@@ -66,8 +66,8 @@ class Site(BaseModel):
     def __str__(self):
         return f'Site:self.url'
 
-    def call_api(self, method, endpoint, **params) -> dict:
-        return call_api(self.url, self.rest_key, method, endpoint, **params)
+    def call_api(self, method, *path_parts, **params) -> dict:
+        return call_api(self.url, self.rest_key, method, *path_parts, **params)
 
 
 class BaseSession(BaseModel):

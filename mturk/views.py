@@ -60,7 +60,7 @@ class MTurkSessions(ExperimenterMixin, vanilla.CreateView):
     def post(self, request, site_id):
         site = get_object_or_404(Site, id=site_id)
         code = request.POST['code']
-        session_data = site.call_api(GET, 'session', code=code, participant_labels=[])
+        session_data = site.call_api(GET, 'sessions', code, participant_labels=[])
         config = session_data['config']
         num_participants = session_data['num_participants']
         if not 'mturk_hit_settings' in config:
@@ -282,8 +282,8 @@ class MTurkPayments(ExperimenterMixin, SessionMixin, vanilla.TemplateView):
         site = session.site
         data = site.call_api(
             GET,
-            'session',
-            code=session.code,
+            'sessions',
+            session.code,
             participant_labels=[wrk.worker_id for wrk in all_listable_workers],
         )
         from pprint import pprint
@@ -339,8 +339,8 @@ class PayMTurk(ExperimenterMixin, vanilla.View):
         site = session.site
         data = site.call_api(
             GET,
-            'session',
-            code=session.code,
+            'sessions',
+            session.code,
             participant_labels=[wrk.worker_id for wrk in workers],
         )
 
