@@ -59,7 +59,12 @@ class Site(BaseModel):
         help_text="For example, http://localhost:8000 or https://myapp.herokuapp.com",
     )
     rest_key = models.CharField(
-        max_length=255, verbose_name='OTREE_REST_KEY', blank=True, default=''
+        max_length=255,
+        verbose_name='OTREE_REST_KEY',
+        blank=True,
+        default='',
+        help_text="On your server, set a config var called OTREE_REST_KEY, and add it here also, "
+        "so that oTree HR can authenicate with your server.",
     )
     profile = models.ForeignKey(Profile, on_delete=models.CASCADE)
 

@@ -2,7 +2,7 @@
 
 oTree HR is a project that aims to connect oTree with online recruiting & payment platforms like
 MTurk, Prolific, Venmo, PayPal, etc, to facilitate payments, communication, and management of your workers. 
-Currently it is an **alpha version**, and supports:
+Currently it is an **beta version**, and supports:
 
 -   MTurk: publishing HITs with micro-batching, which reduces MTurk's fees.
 -   Prolific: coordinating start links, completion URLs, and payments. 
@@ -28,9 +28,6 @@ Please send an email to chris@otree.org.
 ## Details
 
 It uses [oTree's REST API](https://otree.readthedocs.io/en/latest/misc/rest_api.html). 
-oTree 3.4+ and 5+ are both supported.
-
-(**NOTE**: It's best to use oTree 5 for now, since the REST API is in flux.)
 
 The application is basically a middleman between oTree and the cloud. When you post a study to MTurk,
 the workers click a link that takes them to your oTree HR site, and then redirects them to the correct session
@@ -42,8 +39,7 @@ so that people don't have to set up their own server.
 
 ## How do I run it?
 
-First, make sure you are on the latest 5.x (`pip install -U otree`),
-or on oTree 3.4 beta (`pip install -U "otree<5" --pre`).
+First, make sure you are on the latest 5.x (`pip install -U otree`).
 
 ### On Heroku
 
