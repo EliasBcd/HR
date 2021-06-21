@@ -11,3 +11,4 @@ db.sqlite3
 htmlcov/
 tests/_static_root
 __temp_*
+*.ipynb_checkpoints*
