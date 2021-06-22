@@ -18,12 +18,12 @@
     <form action="" method="post" role="form" class="form"
           id="form">{% csrf_token %}
 
-        {{ form.as_table }}
+        {{ form.as_ul }}
 
         <p>
             When you click the below button, your HIT will be immediately published on MTurk.
         </p>
-        <button type="button" class="btn btn-primary" id="btn-publish-hit">
+        <button type="submit" class="btn btn-primary" id="btn-publish-hit">
             Publish HIT
         </button>
     </form>
