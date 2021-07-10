@@ -61,7 +61,7 @@ def MTurkClient(profile, *, use_sandbox=True, request):
 
 
 AssignmentData = namedtuple(
-    'Assignment', ['worker_id', 'assignment_id', 'status', 'answer']
+    'Assignment', ['worker_id', 'assignment_id', 'status', 'answer', 'submit_time']
 )
 
 
@@ -89,11 +89,29 @@ def get_all_assignments(mturk_client, hit_ids) -> List[AssignmentData]:
                         assignment_id=d['AssignmentId'],
                         status=d['AssignmentStatus'],
                         answer=d['Answer'],
+                        submit_time=d['SubmitTime'],
                     )
                 )
             args['NextToken'] = response['NextToken']
 
-    return assignments
+    # with micro-batching, a worker can accept the HIT multiple times,
+    # and therefore can submit it multiple times.
+    # here, we only accept their first submission.
+    # there should be no way for them to submit twice, since our redirect code
+    # will block them for participating in a second assignment. so if they submit
+    # twice, we are within our rights to filter it out.
+    # our auto-reject code will reject them, but we should still filter them out,
+    # to avoid weird edge cases, like being in workers_not_reviewed and
+    # workers_accepted at the same time (perhaps mturk has a delay before it marks
+    # a worker as rejected).
+    assignments.sort(key=lambda a: a.submit_time)
+    seen_worker_ids = set()
+    assignments_without_duplicates = []
+    for a in assignments:
+        if a.worker_id not in seen_worker_ids:
+            assignments_without_duplicates.append(a)
+            seen_worker_ids.add(a)
+    return assignments_without_duplicates
 
 
 def get_worker_ids_by_status(

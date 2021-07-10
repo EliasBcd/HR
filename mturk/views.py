@@ -39,9 +39,15 @@ class RedirectMTurk(vanilla.View):
 
         assignment_id = request.GET['assignmentId']
         worker_id = request.GET['workerId']
-        HITWorker.objects.get_or_create(
-            assignment_id=assignment_id, worker_id=worker_id, session=session,
+        worker, _ = HITWorker.objects.get_or_create(
+            worker_id=worker_id,
+            session=session,
+            defaults=dict(assignment_id=assignment_id),
         )
+        if worker.assignment_id != assignment_id:
+            return HttpResponse(
+                "Please return the assignment. Our records show that you have participated in a similar HIT before."
+            )
 
         session_wide_url = session.session_wide_url
 
@@ -249,7 +255,7 @@ class ExpireHIT(ExperimenterMixin, vanilla.View):
 class MTurkPayments(ExperimenterMixin, SessionMixin, vanilla.TemplateView):
     template_name = 'mturk/MTurkPayments.html'
 
-    def get_context_data(self):
+    def get(self, request, code):
         session = self.session
 
         assignment_ids_in_db = [
@@ -265,6 +271,9 @@ class MTurkPayments(ExperimenterMixin, SessionMixin, vanilla.TemplateView):
 
             # auto-reject participants who submitted without clicking the link,
             # since MTurk will auto-approve them if we don't reject.
+            # this also includes people who tried to participate twice,
+            # since our redirect code won't create an extra HitWorker if there is already
+            # someone with the same worker_id in the session.
             submitted_assignment_ids = [
                 a.assignment_id for a in all_assignments if a.status == 'Submitted'
             ]
@@ -284,6 +293,9 @@ class MTurkPayments(ExperimenterMixin, SessionMixin, vanilla.TemplateView):
                 worker_id__in=worker_ids_by_status[status], session=session
             )
 
+        # if someone accepts twice, it's possible they could be in 2 lists.
+        # So after we accept 1 assignment, they could be both in Approved and Submitted.
+        # but
         workers_approved = filter_workers_by_status('Approved')
         workers_rejected = filter_workers_by_status('Rejected')
         workers_not_reviewed = filter_workers_by_status('Submitted')
@@ -299,9 +311,6 @@ class MTurkPayments(ExperimenterMixin, SessionMixin, vanilla.TemplateView):
             session.code,
             participant_labels=[wrk.worker_id for wrk in all_listable_workers],
         )
-        from pprint import pprint
-
-        pprint(data)
 
         participants_list = data['participants']
         participants = {p['label']: p for p in participants_list}
@@ -324,7 +333,7 @@ class MTurkPayments(ExperimenterMixin, SessionMixin, vanilla.TemplateView):
                 wrk.finished = participant.get('finished')
                 wrk.code = participant['code']
 
-        return dict(
+        context = dict(
             workers_approved=workers_approved,
             workers_rejected=workers_rejected,
             workers_not_reviewed=workers_not_reviewed,
@@ -332,6 +341,7 @@ class MTurkPayments(ExperimenterMixin, SessionMixin, vanilla.TemplateView):
             auto_rejects=auto_rejects,
             session=session,
         )
+        return self.render_to_response(context)
 
 
 class PayMTurk(ExperimenterMixin, vanilla.View):
