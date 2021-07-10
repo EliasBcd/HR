@@ -104,6 +104,9 @@ def get_all_assignments(mturk_client, hit_ids) -> List[AssignmentData]:
     # to avoid weird edge cases, like being in workers_not_reviewed and
     # workers_accepted at the same time (perhaps mturk has a delay before it marks
     # a worker as rejected).
+    # i got someone in participants_rejected and participants_accepted,
+    # first by submitting without clicking the link (and getting auto-rejected)
+    # then by submitting and getting approved.
     assignments.sort(key=lambda a: a.submit_time)
     seen_worker_ids = set()
     assignments_without_duplicates = []

@@ -258,35 +258,48 @@ class MTurkPayments(ExperimenterMixin, SessionMixin, vanilla.TemplateView):
     def get(self, request, code):
         session = self.session
 
-        assignment_ids_in_db = [
-            a.assignment_id for a in HITWorker.filter(session=session)
-        ]
+        workers_in_otree_hr = HITWorker.filter(session=session)
+
+        site = session.site
+        data = site.call_api(
+            GET,
+            'sessions',
+            session.code,
+            participant_labels=[wrk.worker_id for wrk in workers_in_otree_hr],
+        )
+        otree_pps_by_label = {p['label']: p for p in data['participants']}
 
         with MTurkClient(
             self.profile, use_sandbox=session.use_sandbox, request=self.request
         ) as mturk_client:
-            all_assignments = get_all_assignments(
+            raw_assignments = get_all_assignments(
                 mturk_client, [h.hit_id for h in HIT.filter(session=session)]
             )
+            assignments = []
+            auto_rejected_assignment_ids = []
 
             # auto-reject participants who submitted without clicking the link,
             # since MTurk will auto-approve them if we don't reject.
             # this also includes people who tried to participate twice,
             # since our redirect code won't create an extra HitWorker if there is already
             # someone with the same worker_id in the session.
-            submitted_assignment_ids = [
-                a.assignment_id for a in all_assignments if a.status == 'Submitted'
-            ]
 
-            auto_rejects = set(submitted_assignment_ids) - set(assignment_ids_in_db)
+            for a in raw_assignments:
+                # better to refer to oTree DB rather than HR DB, because it's possible for
+                # someone to click the link to oTree HR but maybe the site is down.
+                # otree_pps_by_label is only the people in oTree AND oTree HR
+                if a.worker_id in otree_pps_by_label:
+                    assignments.append(a)
+                elif a.status == 'Submitted':
+                    auto_rejected_assignment_ids.append(a.assignment_id)
 
-            for assignment_id in auto_rejects:
+            for assignment_id in auto_rejected_assignment_ids:
                 mturk_client.reject_assignment(
                     AssignmentId=assignment_id,
                     RequesterFeedback='Auto-rejecting because this assignment was not found in our database.',
                 )
 
-        worker_ids_by_status = get_worker_ids_by_status(all_assignments)
+        worker_ids_by_status = get_worker_ids_by_status(assignments)
 
         def filter_workers_by_status(status) -> List[HITWorker]:
             return HITWorker.filter(
@@ -295,25 +308,11 @@ class MTurkPayments(ExperimenterMixin, SessionMixin, vanilla.TemplateView):
 
         # if someone accepts twice, it's possible they could be in 2 lists.
         # So after we accept 1 assignment, they could be both in Approved and Submitted.
-        # but
+        # this is why we filter in get_all_assignments
         workers_approved = filter_workers_by_status('Approved')
         workers_rejected = filter_workers_by_status('Rejected')
         workers_not_reviewed = filter_workers_by_status('Submitted')
 
-        all_listable_workers = (
-            workers_approved + workers_rejected + workers_not_reviewed
-        )
-
-        site = session.site
-        data = site.call_api(
-            GET,
-            'sessions',
-            session.code,
-            participant_labels=[wrk.worker_id for wrk in all_listable_workers],
-        )
-
-        participants_list = data['participants']
-        participants = {p['label']: p for p in participants_list}
         participation_fee = session.config['participation_fee']
         for lst in [
             workers_not_reviewed,
@@ -321,10 +320,10 @@ class MTurkPayments(ExperimenterMixin, SessionMixin, vanilla.TemplateView):
             workers_rejected,
         ]:
             answers = {}
-            for assignment in all_assignments:
+            for assignment in assignments:
                 answers[assignment.worker_id] = assignment.answer
             for wrk in lst:
-                participant = participants[wrk.worker_id]
+                participant = otree_pps_by_label[wrk.worker_id]
                 # these are not DB properties, just setting it so we can show in template
                 wrk.answers_formatted = get_completion_code(answers[wrk.worker_id])
                 payoff = participant['payoff_in_real_world_currency']
@@ -338,7 +337,7 @@ class MTurkPayments(ExperimenterMixin, SessionMixin, vanilla.TemplateView):
             workers_rejected=workers_rejected,
             workers_not_reviewed=workers_not_reviewed,
             participation_fee=participation_fee,
-            auto_rejects=auto_rejects,
+            auto_rejects=auto_rejected_assignment_ids,
             session=session,
         )
         return self.render_to_response(context)
