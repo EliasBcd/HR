@@ -28,6 +28,7 @@ urlpatterns = [
     experimenter_path('profile/', hr_views.Settings),
     public_path('redirect_mturk/<int:id>/', mturk_views.RedirectMTurk),
     public_path('redirect_prolific/<int:id>/', prolific_views.RedirectProlific),
+    experimenter_path('DeleteSite/<int:site_id>', hr_views.DeleteSite),
     experimenter_path('sites/<int:site_id>/mturk', mturk_views.MTurkSessions),
     experimenter_path('sites/<int:site_id>/prolific', prolific_views.ProlificSessions),
     experimenter_path('CreateHIT/<code>/', mturk_views.CreateHIT),

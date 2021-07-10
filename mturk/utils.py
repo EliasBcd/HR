@@ -4,7 +4,7 @@ import json
 from collections import defaultdict, namedtuple
 from dataclasses import dataclass
 from typing import List, Dict, Union, Optional
-
+from django.http import Http404
 import boto3
 from django.conf import settings
 from django.contrib import messages
@@ -41,6 +41,10 @@ def get_mturk_client(profile: Profile, *, use_sandbox=True):
     )
 
 
+class MTurkError(Exception):
+    pass
+
+
 @contextlib.contextmanager
 def MTurkClient(profile, *, use_sandbox=True, request):
     '''Alternative to get_mturk_client, for when we need exception handling
@@ -51,11 +55,9 @@ def MTurkClient(profile, *, use_sandbox=True, request):
     try:
         yield get_mturk_client(profile, use_sandbox=use_sandbox)
     except Exception as exc:
-        # TODO: instead of catching Exception, we should catch just boto3 errors,
-        # and remove the 'raise'
-        logger.error('MTurk error', exc_info=True)
-        messages.error(request, str(exc), extra_tags='safe')
-        raise
+        # use this because there are many different errors that can happen,
+        # so for simplicity we wrap them under a simple exception class.
+        raise MTurkError from exc
 
 
 AssignmentData = namedtuple(

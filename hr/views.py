@@ -4,7 +4,7 @@ import vanilla
 from django.contrib.auth import login
 from django.http import HttpResponse
 from django.shortcuts import redirect, reverse
-
+from django.utils import timezone
 from otree_api import BaseOTreeApiError
 from .forms import UserCreationForm, CreateSiteForm
 from .models import Site, Profile
@@ -31,6 +31,12 @@ class Settings(ExperimenterMixin, vanilla.UpdateView):
     def get_object(self):
         return self.profile
 
+    def form_valid(self, form):
+        self.object = form.save()
+        self.profile.aws_keys_added = timezone.now()
+        self.profile.save()
+        return super().form_valid(form)
+
     def get_success_url(self):
         messages.success(self.request, 'Updated profile')
         return reverse('Settings')
@@ -56,6 +62,14 @@ class Sites(ExperimenterMixin, vanilla.CreateView):
         site.profile = self.profile
         site.save()
         return redirect('Sites')
+
+
+class DeleteSite(ExperimenterMixin, vanilla.DeleteView):
+    def get_object(self):
+        return Site.get_or_404(profile=self.profile, id=self.kwargs['site_id'])
+
+    def get_success_url(self):
+        return reverse('Sites')
 
 
 class Register(vanilla.CreateView):

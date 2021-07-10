@@ -37,6 +37,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'mturk.middleware.ExceptionMiddleware',
 ]
 
 ROOT_URLCONF = 'hrproj.urls'
@@ -108,6 +109,16 @@ MESSAGE_TAGS = {messages.ERROR: 'danger'}
 
 LOGIN_REDIRECT_URL = '/Sites/'
 LOGOUT_REDIRECT_URL = '/'
+
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
+
+sentry_sdk.init(
+    dsn=environ.get('SENTRY_DSN'),
+    integrations=[DjangoIntegration()],
+    traces_sample_rate=1.0,
+    send_default_pii=True,
+)
 
 import django_heroku
 

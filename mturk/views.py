@@ -27,6 +27,7 @@ from .utils import (
     in_public_domain,
 )
 from .forms import CreateHITForm
+from tasks import expire_old_aws_keys
 
 
 logger = logging.getLogger(__name__)
@@ -41,6 +42,12 @@ class RedirectMTurk(vanilla.View):
         HITWorker.objects.get_or_create(
             assignment_id=assignment_id, worker_id=worker_id, session=session,
         )
+
+        session_wide_url = session.session_wide_url
+
+        # maybe the cause of this issue? https://github.com/oTree-org/HR/issues/2
+        if not session_wide_url.endswith('/'):
+            session_wide_url += '/'
         return HttpResponseRedirect(
             session.session_wide_url + '?participant_label=' + worker_id
         )
@@ -53,13 +60,18 @@ class MTurkSessions(ExperimenterMixin, vanilla.CreateView):
 
     def get_context_data(self, **kwargs):
         site_id = self.kwargs['site_id']
-        site = Site.get_or_404(id=site_id)
+        profile = self.profile
+        site = Site.get_or_404(id=site_id, profile=profile)
         sessions = Session.objects.filter(site_id=site_id).order_by('-id')
-        return dict(sessions=sessions, site=site)
+        return dict(sessions=sessions, site=site, profile=profile)
 
     def post(self, request, site_id):
-        site = get_object_or_404(Site, id=site_id)
+        profile = self.profile
+        site = get_object_or_404(Site, id=site_id, profile=profile)
         code = request.POST['code']
+        redirect_response = redirect('MTurkSessions', site_id=site_id)
+        if Session.objects.filter(code=code, site=site).exists():
+            return redirect_response
         session_data = site.call_api(GET, 'sessions', code, participant_labels=[])
         config = session_data['config']
         num_participants = session_data['num_participants']
@@ -79,8 +91,7 @@ class MTurkSessions(ExperimenterMixin, vanilla.CreateView):
         )
 
         messages.success(request, f'Added session {code}')
-
-        return redirect('MTurkSessions', site_id=site_id)
+        return redirect_response
 
 
 class SessionMixin:
@@ -188,6 +199,8 @@ class CreateHIT(ExperimenterMixin, SessionMixin, vanilla.FormView):
             session.HITGroupId = HITGroupId
             session.save()
 
+        # for now we don't need a task queue
+        expire_old_aws_keys()
         return redirect('ManageHIT', session.code)
 
 
