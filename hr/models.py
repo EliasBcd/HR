@@ -25,6 +25,7 @@ class BaseModel(models.Model):
 
     @classmethod
     def get_or_404(cls: Type[ModelTypeVar], **kwargs) -> ModelTypeVar:
+        # why not use get_or_404 function inside here?
         try:
             return cls.get(**kwargs)
         except cls.DoesNotExist as exc:
@@ -47,6 +48,7 @@ class Profile(BaseModel):
     aws_secret_access_key = models.CharField(
         max_length=255, blank=True, null=True, verbose_name='AWS_SECRET_ACCESS_KEY'
     )
+    aws_keys_added = models.DateTimeField(null=True)
 
     def __str__(self):
         return f'{self.user.email}'
@@ -66,6 +68,7 @@ class Site(BaseModel):
         help_text="On your server, set a config var called OTREE_REST_KEY, and add it here also, "
         "so that oTree HR can authenicate with your server.",
     )
+    rest_key_added = models.DateTimeField(null=True)
     profile = models.ForeignKey(Profile, on_delete=models.CASCADE)
 
     def __str__(self):

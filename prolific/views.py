@@ -40,12 +40,12 @@ class ProlificSessions(ExperimenterMixin, vanilla.CreateView):
 
     def get_context_data(self, **kwargs):
         site_id = self.kwargs['site_id']
-        site = Site.get_or_404(id=site_id)
+        site = Site.get_or_404(id=site_id, profile=self.profile)
         sessions = Session.objects.filter(site_id=site_id).order_by('-id')
         return dict(sessions=sessions, site=site)
 
     def post(self, request, site_id):
-        site = get_object_or_404(Site, id=site_id)
+        site = get_object_or_404(Site, id=site_id, profile=self.profile)
         code = request.POST['code']
         session_data = site.call_api(GET, 'sessions', code, participant_labels=[])
         config = session_data['config']

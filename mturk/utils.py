@@ -4,7 +4,7 @@ import json
 from collections import defaultdict, namedtuple
 from dataclasses import dataclass
 from typing import List, Dict, Union, Optional
-
+from django.http import Http404
 import boto3
 from django.conf import settings
 from django.contrib import messages
@@ -41,6 +41,10 @@ def get_mturk_client(profile: Profile, *, use_sandbox=True):
     )
 
 
+class MTurkError(Exception):
+    pass
+
+
 @contextlib.contextmanager
 def MTurkClient(profile, *, use_sandbox=True, request):
     '''Alternative to get_mturk_client, for when we need exception handling
@@ -51,15 +55,13 @@ def MTurkClient(profile, *, use_sandbox=True, request):
     try:
         yield get_mturk_client(profile, use_sandbox=use_sandbox)
     except Exception as exc:
-        # TODO: instead of catching Exception, we should catch just boto3 errors,
-        # and remove the 'raise'
-        logger.error('MTurk error', exc_info=True)
-        messages.error(request, str(exc), extra_tags='safe')
-        raise
+        # use this because there are many different errors that can happen,
+        # so for simplicity we wrap them under a simple exception class.
+        raise MTurkError from exc
 
 
 AssignmentData = namedtuple(
-    'Assignment', ['worker_id', 'assignment_id', 'status', 'answer']
+    'Assignment', ['worker_id', 'assignment_id', 'status', 'answer', 'submit_time']
 )
 
 
@@ -87,11 +89,32 @@ def get_all_assignments(mturk_client, hit_ids) -> List[AssignmentData]:
                         assignment_id=d['AssignmentId'],
                         status=d['AssignmentStatus'],
                         answer=d['Answer'],
+                        submit_time=d['SubmitTime'],
                     )
                 )
             args['NextToken'] = response['NextToken']
 
-    return assignments
+    # with micro-batching, a worker can accept the HIT multiple times,
+    # and therefore can submit it multiple times.
+    # here, we only accept their first submission.
+    # there should be no way for them to submit twice, since our redirect code
+    # will block them for participating in a second assignment. so if they submit
+    # twice, we are within our rights to filter it out.
+    # our auto-reject code will reject them, but we should still filter them out,
+    # to avoid weird edge cases, like being in workers_not_reviewed and
+    # workers_accepted at the same time (perhaps mturk has a delay before it marks
+    # a worker as rejected).
+    # i got someone in participants_rejected and participants_accepted,
+    # first by submitting without clicking the link (and getting auto-rejected)
+    # then by submitting and getting approved.
+    assignments.sort(key=lambda a: a.submit_time)
+    seen_worker_ids = set()
+    assignments_without_duplicates = []
+    for a in assignments:
+        if a.worker_id not in seen_worker_ids:
+            assignments_without_duplicates.append(a)
+            seen_worker_ids.add(a)
+    return assignments_without_duplicates
 
 
 def get_worker_ids_by_status(

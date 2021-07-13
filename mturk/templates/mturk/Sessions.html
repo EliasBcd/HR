@@ -3,6 +3,13 @@
 {% block title %}Sessions for {{ site.url }}{% endblock %}
 
 {% block content %}
+    {% if not profile.aws_secret_access_key %}
+        <div class="alert alert-warning" role="alert">
+            Please fill in your AWS_SECRET_ACCESS_KEY
+            <a href="{% url 'Settings' %}">here</a>.
+        </div>
+    {% endif %}
+
     <form method="post">{% csrf_token %}
         <p>Create a session on your oTree site, then enter its <b>code</b> here:</p>
         <input type="text" name="code" autofocus>
@@ -11,11 +18,11 @@
 
     <h3>Existing Sessions</h3>
     <table class="table">
-            <tr>
-                <th>Code</th>
-                <th>Status</th>
-                <th>Sandbox?</th>
-            </tr>
+        <tr>
+            <th>Code</th>
+            <th>Status</th>
+            <th>Sandbox?</th>
+        </tr>
         {% for s in sessions %}
             <tr>
                 <td><a href="{% url 'ManageHIT' s.code %}">{{ s.code }}</a></td>

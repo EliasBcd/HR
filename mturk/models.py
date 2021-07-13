@@ -61,6 +61,9 @@ class HIT(BaseModel):
 
 
 class HITWorker(BaseModel):
+    class Meta:
+        unique_together = ['session', 'worker_id']
+
     def __str__(self):
         return f'Worker:{self.worker_id}'
 

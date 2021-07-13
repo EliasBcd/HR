@@ -27,6 +27,7 @@ from .utils import (
     in_public_domain,
 )
 from .forms import CreateHITForm
+from tasks import expire_old_aws_keys
 
 
 logger = logging.getLogger(__name__)
@@ -38,9 +39,21 @@ class RedirectMTurk(vanilla.View):
 
         assignment_id = request.GET['assignmentId']
         worker_id = request.GET['workerId']
-        HITWorker.objects.get_or_create(
-            assignment_id=assignment_id, worker_id=worker_id, session=session,
+        worker, _ = HITWorker.objects.get_or_create(
+            worker_id=worker_id,
+            session=session,
+            defaults=dict(assignment_id=assignment_id),
         )
+        if worker.assignment_id != assignment_id:
+            return HttpResponse(
+                "Please return the assignment. Our records show that you have participated in a similar HIT before."
+            )
+
+        session_wide_url = session.session_wide_url
+
+        # maybe the cause of this issue? https://github.com/oTree-org/HR/issues/2
+        if not session_wide_url.endswith('/'):
+            session_wide_url += '/'
         return HttpResponseRedirect(
             session.session_wide_url + '?participant_label=' + worker_id
         )
@@ -53,13 +66,18 @@ class MTurkSessions(ExperimenterMixin, vanilla.CreateView):
 
     def get_context_data(self, **kwargs):
         site_id = self.kwargs['site_id']
-        site = Site.get_or_404(id=site_id)
+        profile = self.profile
+        site = Site.get_or_404(id=site_id, profile=profile)
         sessions = Session.objects.filter(site_id=site_id).order_by('-id')
-        return dict(sessions=sessions, site=site)
+        return dict(sessions=sessions, site=site, profile=profile)
 
     def post(self, request, site_id):
-        site = get_object_or_404(Site, id=site_id)
+        profile = self.profile
+        site = get_object_or_404(Site, id=site_id, profile=profile)
         code = request.POST['code']
+        redirect_response = redirect('MTurkSessions', site_id=site_id)
+        if Session.objects.filter(code=code, site=site).exists():
+            return redirect_response
         session_data = site.call_api(GET, 'sessions', code, participant_labels=[])
         config = session_data['config']
         num_participants = session_data['num_participants']
@@ -79,8 +97,7 @@ class MTurkSessions(ExperimenterMixin, vanilla.CreateView):
         )
 
         messages.success(request, f'Added session {code}')
-
-        return redirect('MTurkSessions', site_id=site_id)
+        return redirect_response
 
 
 class SessionMixin:
@@ -188,6 +205,8 @@ class CreateHIT(ExperimenterMixin, SessionMixin, vanilla.FormView):
             session.HITGroupId = HITGroupId
             session.save()
 
+        # for now we don't need a task queue
+        expire_old_aws_keys()
         return redirect('ManageHIT', session.code)
 
 
@@ -236,62 +255,64 @@ class ExpireHIT(ExperimenterMixin, vanilla.View):
 class MTurkPayments(ExperimenterMixin, SessionMixin, vanilla.TemplateView):
     template_name = 'mturk/MTurkPayments.html'
 
-    def get_context_data(self):
+    def get(self, request, code):
         session = self.session
 
-        assignment_ids_in_db = [
-            a.assignment_id for a in HITWorker.filter(session=session)
-        ]
-
-        with MTurkClient(
-            self.profile, use_sandbox=session.use_sandbox, request=self.request
-        ) as mturk_client:
-            all_assignments = get_all_assignments(
-                mturk_client, [h.hit_id for h in HIT.filter(session=session)]
-            )
-
-            # auto-reject participants who submitted without clicking the link,
-            # since MTurk will auto-approve them if we don't reject.
-            submitted_assignment_ids = [
-                a.assignment_id for a in all_assignments if a.status == 'Submitted'
-            ]
-
-            auto_rejects = set(submitted_assignment_ids) - set(assignment_ids_in_db)
-
-            for assignment_id in auto_rejects:
-                mturk_client.reject_assignment(
-                    AssignmentId=assignment_id,
-                    RequesterFeedback='Auto-rejecting because this assignment was not found in our database.',
-                )
-
-        worker_ids_by_status = get_worker_ids_by_status(all_assignments)
-
-        def filter_workers_by_status(status) -> List[HITWorker]:
-            return HITWorker.filter(
-                worker_id__in=worker_ids_by_status[status], session=session
-            )
-
-        workers_approved = filter_workers_by_status('Approved')
-        workers_rejected = filter_workers_by_status('Rejected')
-        workers_not_reviewed = filter_workers_by_status('Submitted')
-
-        all_listable_workers = (
-            workers_approved + workers_rejected + workers_not_reviewed
-        )
+        workers_in_otree_hr = HITWorker.filter(session=session)
 
         site = session.site
         data = site.call_api(
             GET,
             'sessions',
             session.code,
-            participant_labels=[wrk.worker_id for wrk in all_listable_workers],
+            participant_labels=[wrk.worker_id for wrk in workers_in_otree_hr],
         )
-        from pprint import pprint
+        otree_pps_by_label = {p['label']: p for p in data['participants']}
 
-        pprint(data)
+        with MTurkClient(
+            self.profile, use_sandbox=session.use_sandbox, request=self.request
+        ) as mturk_client:
+            raw_assignments = get_all_assignments(
+                mturk_client, [h.hit_id for h in HIT.filter(session=session)]
+            )
+            assignments = []
+            auto_rejected_assignment_ids = []
 
-        participants_list = data['participants']
-        participants = {p['label']: p for p in participants_list}
+            # auto-reject participants who submitted without clicking the link,
+            # since MTurk will auto-approve them if we don't reject.
+            # this also includes people who tried to participate twice,
+            # since our redirect code won't create an extra HitWorker if there is already
+            # someone with the same worker_id in the session.
+
+            for a in raw_assignments:
+                # better to refer to oTree DB rather than HR DB, because it's possible for
+                # someone to click the link to oTree HR but maybe the site is down.
+                # otree_pps_by_label is only the people in oTree AND oTree HR
+                if a.worker_id in otree_pps_by_label:
+                    assignments.append(a)
+                elif a.status == 'Submitted':
+                    auto_rejected_assignment_ids.append(a.assignment_id)
+
+            for assignment_id in auto_rejected_assignment_ids:
+                mturk_client.reject_assignment(
+                    AssignmentId=assignment_id,
+                    RequesterFeedback='Auto-rejecting because this assignment was not found in our database.',
+                )
+
+        worker_ids_by_status = get_worker_ids_by_status(assignments)
+
+        def filter_workers_by_status(status) -> List[HITWorker]:
+            return HITWorker.filter(
+                worker_id__in=worker_ids_by_status[status], session=session
+            )
+
+        # if someone accepts twice, it's possible they could be in 2 lists.
+        # So after we accept 1 assignment, they could be both in Approved and Submitted.
+        # this is why we filter in get_all_assignments
+        workers_approved = filter_workers_by_status('Approved')
+        workers_rejected = filter_workers_by_status('Rejected')
+        workers_not_reviewed = filter_workers_by_status('Submitted')
+
         participation_fee = session.config['participation_fee']
         for lst in [
             workers_not_reviewed,
@@ -299,10 +320,10 @@ class MTurkPayments(ExperimenterMixin, SessionMixin, vanilla.TemplateView):
             workers_rejected,
         ]:
             answers = {}
-            for assignment in all_assignments:
+            for assignment in assignments:
                 answers[assignment.worker_id] = assignment.answer
             for wrk in lst:
-                participant = participants[wrk.worker_id]
+                participant = otree_pps_by_label[wrk.worker_id]
                 # these are not DB properties, just setting it so we can show in template
                 wrk.answers_formatted = get_completion_code(answers[wrk.worker_id])
                 payoff = participant['payoff_in_real_world_currency']
@@ -311,14 +332,15 @@ class MTurkPayments(ExperimenterMixin, SessionMixin, vanilla.TemplateView):
                 wrk.finished = participant.get('finished')
                 wrk.code = participant['code']
 
-        return dict(
+        context = dict(
             workers_approved=workers_approved,
             workers_rejected=workers_rejected,
             workers_not_reviewed=workers_not_reviewed,
             participation_fee=participation_fee,
-            auto_rejects=auto_rejects,
+            auto_rejects=auto_rejected_assignment_ids,
             session=session,
         )
+        return self.render_to_response(context)
 
 
 class PayMTurk(ExperimenterMixin, vanilla.View):
